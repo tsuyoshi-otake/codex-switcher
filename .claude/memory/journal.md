@@ -51,3 +51,12 @@
 - Root cause: (1) when the first commit failed with "Author identity unknown", the agent set the repo-local user.email to the user's work address instead of the GitHub noreply address; (2) the spec's acceptance accounts were copied verbatim into test fixtures.
 - Fix: fixtures → `@example.com`, journal names anonymized, LICENSE (MIT) added, repo-local user.email = GitHub noreply, history squashed into one orphan commit and force-pushed before switching the repo to public.
 - Learning (promoted to CLAUDE.md): never use real account emails in fixtures; set the noreply commit email before the first commit; scan with git grep before any push to a repo that may become public.
+
+## 2026-09-14 — Public release v0.1.0 (#1)
+- Before the push: cargo test passed 88, clippy was clean, the leak grep found nothing, and no email other than placeholders or noreply was found.
+- Orphan commit bfeb787 was force-pushed to master. The remote has 1 commit, and its author and committer are both noreply.
+- Pre-publish checks, run together: visibility was PRIVATE, there were 0 tags and 0 releases, LICENSE is MIT, and every commit uses the noreply email. Then the repo was switched to PUBLIC.
+- Tag v0.1.0 was created. The release carries `codex-switcher-setup-0.1.0.exe` (2,336,418 bytes). Its SHA-256 is 0ba5e8e2…167a and is listed in the release notes. The binaries are unsigned.
+- Symptom: the first `git push origin v0.1.0` right after the visibility change was rejected with "missing necessary objects". Retrying the same push succeeded, so this was a transient server-side state and needed no fix.
+- Note: GitHub can still serve the old pre-rewrite commits by SHA until they are garbage-collected. GitHub Support can purge them if needed.
+- Added a global CLAUDE.md rule: run the pre-publish leak checks in parallel before making any repository public.

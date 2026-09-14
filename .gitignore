@@ -1,0 +1,4 @@
+/target
+*.profile
+auth.json
+.env

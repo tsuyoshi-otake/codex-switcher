@@ -10,7 +10,7 @@
 #endif
 
 #define AppName "Codex Account Switcher"
-#define AppVersion "0.1.0"
+#define AppVersion "0.1.1"
 #define AppExe "codex-switch.exe"
 #define RunKey "Software\Microsoft\Windows\CurrentVersion\Run"
 #define RunValue "CodexAccountSwitcher"

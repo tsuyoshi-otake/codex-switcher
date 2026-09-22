@@ -20,7 +20,7 @@ Build the per-user installer with [Inno Setup 6](https://jrsoftware.org/isinfo.p
 "$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" //Q installer/codex-switcher.iss
 ```
 
-Run `target\installer\codex-switcher-setup-0.1.0.exe`.
+Run `target\installer\codex-switcher-setup-0.1.1.exe`.
 
 - Installs to `%LOCALAPPDATA%\Programs\CodexAccountSwitcher` and adds a Start menu entry.
 - An existing autostart entry is repointed to the installed exe.

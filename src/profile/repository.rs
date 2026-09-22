@@ -7,7 +7,7 @@
 //! Only ciphertext is stored. The FNV checksum detects accidental corruption early; the
 //! DPAPI MAC remains the real integrity check on decrypt.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -118,10 +118,6 @@ impl ProfileRepository {
     pub fn delete(&self, id: &ProfileId) -> Result<()> {
         self.fs.remove(&self.path_for(id)).map_err(|e| Error::io(format!("deleting profile {id}"), e))
     }
-
-    pub fn dir(&self) -> &Path {
-        &self.dir
-    }
 }
 
 fn fnv1a64(data: &[u8]) -> u64 {
@@ -141,6 +137,8 @@ fn hex_decode(s: &str) -> Option<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::*;
     use crate::auth::AccountIdentity;
     use crate::testing::MemFs;
@@ -149,7 +147,11 @@ mod tests {
         StoredProfile {
             metadata: ProfileMetadata {
                 id: ProfileId::from_random_bytes([n; 16]),
-                identity: AccountIdentity { email: Some(format!("u{n}@example.com")), account_id: Some(format!("a{n}")), ..Default::default() },
+                identity: AccountIdentity {
+                    email: Some(format!("u{n}@example.com")),
+                    account_id: Some(format!("a{n}")),
+                    ..Default::default()
+                },
                 created_at: created,
                 updated_at: created,
             },

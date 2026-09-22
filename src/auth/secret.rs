@@ -16,14 +16,6 @@ impl SecretBytes {
         &self.0
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
     /// Length-independent-time comparison of the contents.
     pub fn ct_eq(&self, other: &[u8]) -> bool {
         if self.0.len() != other.len() {

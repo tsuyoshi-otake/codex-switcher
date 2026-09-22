@@ -12,6 +12,6 @@ pub mod service;
 #[cfg(test)]
 mod tests;
 
-pub use overview::{AccountView, AuthState, CorruptedView, Overview};
+pub use overview::{AccountView, AuthState, Overview};
 pub use ports::{PermissionProbe, StartupRegistration};
 pub use service::{ServiceDeps, SwitcherService};

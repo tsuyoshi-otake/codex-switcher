@@ -3,9 +3,7 @@
 use std::ptr::{null, null_mut};
 
 use windows_sys::Win32::Foundation::{LocalFree, HLOCAL};
-use windows_sys::Win32::Security::Cryptography::{
-    CryptProtectData, CryptUnprotectData, CRYPTPROTECT_UI_FORBIDDEN, CRYPT_INTEGER_BLOB,
-};
+use windows_sys::Win32::Security::Cryptography::{CryptProtectData, CryptUnprotectData, CRYPTPROTECT_UI_FORBIDDEN, CRYPT_INTEGER_BLOB};
 
 use crate::auth::secret::scrub;
 use crate::auth::{SecretBytes, SecretProtector};
@@ -43,9 +41,7 @@ impl SecretProtector for DpapiProtector {
         let entropy = blob(ENTROPY);
         let mut out = CRYPT_INTEGER_BLOB { cbData: 0, pbData: null_mut() };
         // SAFETY: as above.
-        let ok = unsafe {
-            CryptUnprotectData(&input, null_mut(), &entropy, null(), null(), CRYPTPROTECT_UI_FORBIDDEN, &mut out)
-        };
+        let ok = unsafe { CryptUnprotectData(&input, null_mut(), &entropy, null(), null(), CRYPTPROTECT_UI_FORBIDDEN, &mut out) };
         if ok == 0 {
             return Err(Error::Protect(format!("CryptUnprotectData failed: {}", std::io::Error::last_os_error())));
         }
@@ -67,7 +63,7 @@ mod tests {
     fn roundtrip_and_tamper_detection() {
         let plain = SecretBytes::new(b"{\"tokens\":{\"refresh_token\":\"x\"}}".to_vec());
         let blob = DpapiProtector.protect(&plain).unwrap();
-        assert!(!blob.windows(plain.len()).any(|w| w == plain.as_bytes()), "ciphertext contains plaintext");
+        assert!(!blob.windows(plain.as_bytes().len()).any(|w| w == plain.as_bytes()), "ciphertext contains plaintext");
         assert!(DpapiProtector.unprotect(&blob).unwrap().ct_eq(plain.as_bytes()));
 
         let mut tampered = blob.clone();

@@ -6,4 +6,4 @@
 
 pub mod menu;
 
-pub use menu::{build_menu, tooltip, Command, MenuEntry, MenuItem};
+pub use menu::{build_menu, tooltip, Command, MenuEntry};

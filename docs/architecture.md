@@ -39,6 +39,23 @@ main.rs ─► platform::windows::bootstrap   (composition root)
 - All `unsafe` is inside `platform::windows`.
 - Every port has an in-memory fake in `src/testing` (`MemFs` with op-indexed fault and crash injection, `FakeProtector`, `FakeCodex`, `FakeLogin`).
 
+## Process ownership (`codex/process_model.rs`)
+
+`classify` and every shutdown poll share `owned_processes`. A target must have a
+known creation time and an executable in the Codex MSIX installation, or in
+`%LOCALAPPDATA%\OpenAI\Codex\bin` / `runtimes` with verified Desktop ancestry.
+A conflicting package identity excludes it. Inherited identity or parentage
+alone never makes a user application (such as RunDog) a shutdown target.
+
+Ancestry traversal is O(N) and can cross a shell wrapper to find a bundled runtime,
+without selecting the shell. Only eligible targets are remembered for later polls;
+their executable and PID creation time are checked again. Known helpers can outlive
+Desktop, but unrelated resident apps cannot keep shutdown pending. Other `codex.exe`
+processes remain external clients, including CLIs started from a Desktop task.
+Missing image/timestamp metadata excludes a process from termination. Future runtime
+locations require updating this policy and its regression tests; do not restore an
+unrestricted descendant rule.
+
 ## Switch transaction (`switch::transaction`)
 
 Pre-flight checks, before anything is stopped:

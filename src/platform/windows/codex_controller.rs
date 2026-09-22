@@ -1,7 +1,7 @@
 //! Codex Desktop lifecycle on Windows.
 //!
-//! * Identification: MSIX package family of each process (+ descendants), never the image
-//!   name — ChatGPT Desktop ships the same `ChatGPT.exe` name.
+//! * Identification: MSIX installation plus dedicated Codex runtime descendants. Inherited
+//!   package identity and parentage alone never authorize stopping a user application.
 //! * Stop: `WM_CLOSE` to Desktop's top-level windows → bounded wait → (optionally)
 //!   `TerminateProcess` of processes that are still verified to be the same Desktop-owned
 //!   processes (PID + creation time) → bounded wait.
@@ -19,7 +19,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 
 use super::process;
 use super::wide::wide;
-use crate::codex::process_model::{classify, descendants_of_known, ProcessEntry};
+use crate::codex::process_model::{classify, owned_processes, ProcessEntry};
 use crate::codex::{CodexController, CodexRuntime, ExternalClient, StopPolicy, StopReport};
 use crate::error::{Error, Result};
 
@@ -28,25 +28,24 @@ const POLL: Duration = Duration::from_millis(250);
 pub struct WindowsCodexController {
     family: String,
     app_id: String,
+    runtime_root: Option<String>,
 }
 
 impl WindowsCodexController {
     pub fn new(family: String, app_id: String) -> Self {
-        WindowsCodexController { family, app_id }
+        let runtime_root = std::env::var_os("LOCALAPPDATA")
+            .map(std::path::PathBuf::from)
+            .map(|root| root.join("OpenAI").join("Codex").to_string_lossy().into_owned());
+        WindowsCodexController { family, app_id, runtime_root }
     }
 
-    /// Desktop-owned processes still alive: known roots/descendants plus any process that
-    /// carries the Desktop package identity.
+    /// Revalidate executable ownership on every poll, including previously known PIDs.
     fn owned_alive(&self, known: &mut Vec<(u32, u64)>) -> Result<Vec<ProcessEntry>> {
         let entries = process::snapshot()?;
-        let mut alive = descendants_of_known(&entries, known);
-        for e in classify(&entries, &self.family).desktop {
-            if !alive.iter().any(|a| a.pid == e.pid) {
-                alive.push(e);
-            }
-        }
+        let alive = owned_processes(&entries, known, &self.family, self.runtime_root.as_deref());
+        let mut remembered: HashSet<u32> = known.iter().map(|(pid, _)| *pid).collect();
         for e in &alive {
-            if !known.iter().any(|(pid, _)| *pid == e.pid) {
+            if remembered.insert(e.pid) {
                 known.push((e.pid, e.created_at));
             }
         }
@@ -95,7 +94,7 @@ fn request_close(pids: &HashSet<u32>) -> usize {
 impl CodexController for WindowsCodexController {
     fn inspect(&self) -> Result<CodexRuntime> {
         let entries = process::snapshot()?;
-        let c = classify(&entries, &self.family);
+        let c = classify(&entries, &self.family, self.runtime_root.as_deref());
         Ok(CodexRuntime {
             desktop_pids: c.desktop.iter().map(|e| e.pid).collect(),
             helper_pids: c.helpers.iter().map(|e| e.pid).collect(),
@@ -109,7 +108,7 @@ impl CodexController for WindowsCodexController {
 
     fn stop(&self, policy: &StopPolicy) -> Result<StopReport> {
         let entries = process::snapshot()?;
-        let c = classify(&entries, &self.family);
+        let c = classify(&entries, &self.family, self.runtime_root.as_deref());
         if c.desktop.is_empty() && c.helpers.is_empty() {
             return Ok(StopReport { was_running: false, forced: false });
         }
@@ -118,7 +117,11 @@ impl CodexController for WindowsCodexController {
         let mut known: Vec<(u32, u64)> = c.desktop.iter().chain(&c.helpers).map(|e| (e.pid, e.created_at)).collect();
 
         let windows = request_close(&desktop_pids);
-        log_info!("stopping Codex Desktop: {} desktop / {} helper processes, WM_CLOSE sent to {windows} windows", c.desktop.len(), c.helpers.len());
+        log_info!(
+            "stopping Codex Desktop: {} desktop / {} helper processes, WM_CLOSE sent to {windows} windows",
+            c.desktop.len(),
+            c.helpers.len()
+        );
 
         let mut remaining = self.wait_for_exit(&mut known, Instant::now() + policy.graceful_timeout)?;
         if remaining.is_empty() {

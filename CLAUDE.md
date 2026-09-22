@@ -4,14 +4,14 @@ Verified project knowledge. Where to change what: the table at the top of `docs/
 History with root causes: `.claude/memory/journal.md`.
 
 ## Commands (Git Bash)
-- `timeout 900 cargo test` — 88 tests, including the fault-injection proptest and the exhaustive fault sweep.
+- `timeout 900 cargo test` — 97 tests, including the fault-injection proptest and the exhaustive fault sweep.
 - `timeout 900 cargo clippy --all-targets` — must stay clean.
 - `cargo build --release`, then `"$LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe" //Q installer/codex-switcher.iss` → `target/installer/`.
 - Read-only smoke tests: `target/release/codex-switch.exe list`, `current`.
 
 ## Safety rules (from the spec, still in force)
 - Never log, print, or notify token values. When inspecting auth files, print key names and types only.
-- No hot swap, no Codex patching, no duplicated CODEX_HOME. Never `taskkill /IM ChatGPT.exe`: Codex Desktop and ChatGPT Desktop share that image name. Codex is identified by package family `OpenAI.Codex_2p2nqsd0c76g0` plus parent links with creation-time checks (`codex/process_model.rs::descendants_of_known`).
+- No hot swap, no Codex patching, no duplicated CODEX_HOME. Never `taskkill /IM ChatGPT.exe`: Codex Desktop and ChatGPT Desktop share that image name. `codex/process_model.rs::owned_processes` requires a Codex installation/runtime executable and verified creation times/ancestry. Inherited package identity and parent links alone do not authorize terminating user applications.
 - `codex-switch use` closes the user's Codex. Ask before running it. Auto mode also blocks it for the agent, so the user runs it.
 
 ## Public repository hygiene

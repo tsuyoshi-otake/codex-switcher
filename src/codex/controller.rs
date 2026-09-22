@@ -42,7 +42,9 @@ pub struct StopReport {
 }
 
 /// Lifecycle of Codex Desktop. Implementations must only ever act on processes that
-/// belong to the Codex Desktop package (and their descendants).
+/// run from the Codex Desktop installation or its dedicated runtime cache with verified
+/// Desktop ancestry. User applications/shells must survive, including those launched by
+/// Desktop or carrying inherited package identity. Unknown images/timestamps are not targets.
 pub trait CodexController: Send + Sync {
     fn inspect(&self) -> Result<CodexRuntime>;
 
